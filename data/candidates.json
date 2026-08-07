@@ -1,0 +1,66 @@
+[
+  {
+    "id": "candidate-sara",
+    "name": "Sara Al-Rashid",
+    "completedDays": [
+      "day-1",
+      "day-2",
+      "day-3",
+      "day-4",
+      "day-5",
+      "day-6",
+      "day-7",
+      "day-8",
+      "day-9",
+      "day-10",
+      "day-11",
+      "day-12",
+      "day-13",
+      "day-14"
+    ],
+    "skippedDays": [],
+    "attempts": 2,
+    "strengths": ["Python & data tooling", "LLM APIs", "Retrieval pipelines"],
+    "weaknesses": ["Large-system design", "Evaluation methodology"],
+    "learningSignals": [
+      "completes every assignment",
+      "writes precise, well-structured answers",
+      "needs scaffolding when asked about end-to-end system tradeoffs"
+    ]
+  },
+  {
+    "id": "candidate-omar",
+    "name": "Omar Haddad",
+    "completedDays": [
+      "day-1",
+      "day-2",
+      "day-3",
+      "day-5",
+      "day-6",
+      "day-7"
+    ],
+    "skippedDays": ["day-4"],
+    "attempts": 4,
+    "strengths": ["Fast hands-on debugging", "Quick on coding tasks"],
+    "weaknesses": ["Statistics fundamentals", "Transformer theory"],
+    "learningSignals": [
+      "skips videos and reads code first",
+      "moves fast on practical tasks",
+      "shows shallow understanding of theoretical concepts"
+    ]
+  },
+  {
+    "id": "candidate-lina",
+    "name": "Lina Mansour",
+    "completedDays": ["day-1", "day-3", "day-4"],
+    "skippedDays": ["day-2"],
+    "attempts": 1,
+    "strengths": ["Solid fundamentals", "Consistent daily practice"],
+    "weaknesses": ["Confidence with ML tooling", "Math notation"],
+    "learningSignals": [
+      "practices daily and shares work early",
+      "asks clarifying questions",
+      "needs extra time when a concept is introduced"
+    ]
+  }
+]

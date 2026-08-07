@@ -1,0 +1,436 @@
+[
+  {
+    "id": "day-1",
+    "day": 1,
+    "module": "Foundations",
+    "topic": "AI Fundamentals & Python Setup",
+    "learningObjectives": [
+      "Explain what artificial intelligence is and how it differs from traditional programming",
+      "Install Python and set up a local development environment",
+      "Run a first Python script and use variables, conditionals, and loops",
+      "Navigate a Jupyter notebook and the VS Code interface"
+    ],
+    "tools": ["Python", "VS Code", "Jupyter Notebooks"],
+    "difficulty": "beginner"
+  },
+  {
+    "id": "day-2",
+    "day": 2,
+    "module": "Foundations",
+    "topic": "Git, GitHub & Collaboration",
+    "learningObjectives": [
+      "Initialize a git repository and track changes with commits",
+      "Push code to a remote GitHub repository",
+      "Create branches and open pull requests",
+      "Resolve merge conflicts and review a teammate's code"
+    ],
+    "tools": ["Git", "GitHub", "Terminal"],
+    "difficulty": "beginner"
+  },
+  {
+    "id": "day-3",
+    "day": 3,
+    "module": "Python for Data",
+    "topic": "NumPy & Pandas",
+    "learningObjectives": [
+      "Work with NumPy arrays and vectorized operations",
+      "Load tabular data into pandas DataFrames",
+      "Clean missing values and transform columns",
+      "Perform group-by and aggregation operations on real datasets"
+    ],
+    "tools": ["Python", "NumPy", "Pandas"],
+    "difficulty": "beginner"
+  },
+  {
+    "id": "day-4",
+    "day": 4,
+    "module": "Data & Statistics",
+    "topic": "Visualization & Descriptive Statistics",
+    "learningObjectives": [
+      "Build line, bar, and histogram charts with matplotlib and seaborn",
+      "Compute mean, median, variance, and standard deviation",
+      "Recognize normal distributions, skew, and outliers in data",
+      "Communicate insights from a chart clearly"
+    ],
+    "tools": ["Python", "matplotlib", "seaborn"],
+    "difficulty": "beginner"
+  },
+  {
+    "id": "day-5",
+    "day": 5,
+    "module": "Machine Learning",
+    "topic": "ML Foundations with scikit-learn",
+    "learningObjectives": [
+      "Split data into training and test sets",
+      "Build a scikit-learn pipeline with preprocessing steps",
+      "Train a regression and a classification model",
+      "Evaluate models with accuracy, precision, and recall"
+    ],
+    "tools": ["Python", "scikit-learn", "Pandas"],
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "day-6",
+    "day": 6,
+    "module": "Machine Learning",
+    "topic": "Model Tuning & Evaluation",
+    "learningObjectives": [
+      "Use cross-validation to estimate generalization performance",
+      "Explain bias-variance tradeoff and underfitting versus overfitting",
+      "Tune hyperparameters with grid search",
+      "Read confusion matrices and ROC curves"
+    ],
+    "tools": ["Python", "scikit-learn"],
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "day-7",
+    "day": 7,
+    "module": "Deep Learning",
+    "topic": "Deep Learning with PyTorch",
+    "learningObjectives": [
+      "Create and manipulate tensors",
+      "Explain automatic differentiation with autograd",
+      "Build a feed-forward neural network with nn.Module",
+      "Run a full training loop with a loss and an optimizer"
+    ],
+    "tools": ["Python", "PyTorch", "CUDA"],
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "day-8",
+    "day": 8,
+    "module": "Deep Learning",
+    "topic": "Training Neural Networks",
+    "learningObjectives": [
+      "Compare loss functions and optimizers for different tasks",
+      "Diagnose and reduce overfitting with regularization and dropout",
+      "Explain the role of learning rate schedules",
+      "Build a convolutional network for image classification"
+    ],
+    "tools": ["PyTorch", "Weights & Biases", "Google Colab"],
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "day-9",
+    "day": 9,
+    "module": "NLP",
+    "topic": "Natural Language Processing Essentials",
+    "learningObjectives": [
+      "Tokenize text and build vocabularies",
+      "Represent words with one-hot, TF-IDF, and dense embeddings",
+      "Explain how word2vec learns word representations",
+      "Train a text classification model on a sentiment dataset"
+    ],
+    "tools": ["Python", "NLTK", "Hugging Face Datasets"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-10",
+    "day": 10,
+    "module": "LLMs",
+    "topic": "Introduction to Large Language Models",
+    "learningObjectives": [
+      "Explain the transformer architecture and self-attention",
+      "Describe how LLMs are trained and why they scale",
+      "Load a pretrained model from the Hugging Face Hub",
+      "Run text generation and understand sampling parameters"
+    ],
+    "tools": ["Hugging Face Transformers", "PyTorch", "OpenAI API"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-11",
+    "day": 11,
+    "module": "LLMs",
+    "topic": "Prompt Engineering & Structured Output",
+    "learningObjectives": [
+      "Design effective prompts with clear instructions and few-shot examples",
+      "Use chain-of-thought prompting to improve reasoning",
+      "Constrain model output to valid JSON and enums",
+      "Handle prompt injection and malformed model output"
+    ],
+    "tools": ["OpenAI API", "LangChain", "Zod"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-12",
+    "day": 12,
+    "module": "RAG",
+    "topic": "Retrieval-Augmented Generation",
+    "learningObjectives": [
+      "Explain why LLMs benefit from retrieval",
+      "Chunk documents and embed them into a vector store",
+      "Build a retrieval pipeline that ranks relevant passages",
+      "Ground a model's answer in retrieved context"
+    ],
+    "tools": ["ChromaDB", "pgvector", "OpenAI Embeddings", "LangChain"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-13",
+    "day": 13,
+    "module": "Agents",
+    "topic": "AI Agents & Model Context Protocol",
+    "learningObjectives": [
+      "Design a tool-using agent loop with a planning step",
+      "Give an agent memory and structured tool calls",
+      "Explain the Model Context Protocol (MCP)",
+      "Build a small agent that calls external tools safely"
+    ],
+    "tools": ["LangChain", "MCP", "OpenAI API"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-14",
+    "day": 14,
+    "module": "Evaluation",
+    "topic": "Evaluation & Guardrails",
+    "learningObjectives": [
+      "Build an evaluation set of realistic inputs and expected outputs",
+      "Use LLM-as-judge and automated metrics to score responses",
+      "Add guardrails for harmful or off-topic output",
+      "Track evaluation results across model iterations"
+    ],
+    "tools": ["Pytest", "LangSmith", "OpenAI API"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-15",
+    "day": 15,
+    "module": "RAG",
+    "topic": "Vector Databases & Embeddings",
+    "learningObjectives": [
+      "Compare chunking strategies and their retrieval tradeoffs",
+      "Select and tune embedding models for a domain",
+      "Index documents with metadata filtering",
+      "Run hybrid keyword + vector searches"
+    ],
+    "tools": ["ChromaDB", "pgvector", "OpenAI Embeddings"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-16",
+    "day": 16,
+    "module": "RAG",
+    "topic": "Advanced Retrieval Techniques",
+    "learningObjectives": [
+      "Rewrite and expand queries before retrieval",
+      "Apply reranking to improve top-k results",
+      "Cache embeddings and searches to cut cost",
+      "Measure retrieval quality with hit-rate and MRR"
+    ],
+    "tools": ["LangChain", "Cohere Rerank", "Redis"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-17",
+    "day": 17,
+    "module": "LLMs",
+    "topic": "Tool Calling & Function Calling",
+    "learningObjectives": [
+      "Define tool schemas that an LLM can call reliably",
+      "Validate and coerce tool arguments with Zod",
+      "Handle tool failures and retries",
+      "Compose multiple tools into a single task"
+    ],
+    "tools": ["OpenAI API", "LangChain", "Zod"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-18",
+    "day": 18,
+    "module": "Agents",
+    "topic": "Agent Orchestration & Planning",
+    "learningObjectives": [
+      "Implement a ReAct-style reasoning loop",
+      "Decompose a multi-step task into a plan",
+      "Share state and memory across agent steps",
+      "Compare single-agent and multi-agent patterns"
+    ],
+    "tools": ["LangGraph", "LangChain", "OpenAI API"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-19",
+    "day": 19,
+    "module": "LLMs",
+    "topic": "Context Engineering & Conversation Memory",
+    "learningObjectives": [
+      "Manage token budgets across long conversations",
+      "Summarize old turns without losing key facts",
+      "Store semantic memory for later retrieval",
+      "Decide when context should be trimmed versus kept"
+    ],
+    "tools": ["LangChain", "Redis", "OpenAI API"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-20",
+    "day": 20,
+    "module": "LLMs",
+    "topic": "LLM APIs in Production",
+    "learningObjectives": [
+      "Stream model output to end users",
+      "Add retries, timeouts, and rate-limit handling",
+      "Route requests across models by cost and quality",
+      "Estimate and optimize token spend"
+    ],
+    "tools": ["OpenAI API", "Vercel AI SDK", "TypeScript"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-21",
+    "day": 21,
+    "module": "Fine-Tuning",
+    "topic": "Fine-Tuning Open Models",
+    "learningObjectives": [
+      "Prepare and deduplicate a training dataset",
+      "Apply parameter-efficient methods like LoRA",
+      "Run a fine-tuning job and monitor loss",
+      "Evaluate a fine-tuned model against the base model"
+    ],
+    "tools": ["Hugging Face PEFT", "Unsloth", "Weights & Biases"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-22",
+    "day": 22,
+    "module": "Fine-Tuning",
+    "topic": "Preference Optimization & RLHF",
+    "learningObjectives": [
+      "Explain the RLHF pipeline from preferences to policy",
+      "Collect and structure preference data",
+      "Apply Direct Preference Optimization (DPO)",
+      "Judge alignment gains without harmful regressions"
+    ],
+    "tools": ["TRL", "Hugging Face", "Weights & Biases"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-23",
+    "day": 23,
+    "module": "Evaluation",
+    "topic": "Evaluation Frameworks & Regression Testing",
+    "learningObjectives": [
+      "Build a golden evaluation set per feature",
+      "Score outputs with deterministic and LLM-as-judge metrics",
+      "Run evaluations in CI on every change",
+      "Compare model versions and catch regressions"
+    ],
+    "tools": ["LangSmith", "Pytest", "OpenAI API"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-24",
+    "day": 24,
+    "module": "Safety",
+    "topic": "Guardrails & Safety Systems",
+    "learningObjectives": [
+      "Defend against prompt injection attacks",
+      "Redact PII before it reaches a model",
+      "Moderate input and output for policy violations",
+      "Fall back gracefully when guardrails trigger"
+    ],
+    "tools": ["Guardrails AI", "OpenAI Moderation", "Presidio"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-25",
+    "day": 25,
+    "module": "MLOps",
+    "topic": "Experiment Tracking & Versioning",
+    "learningObjectives": [
+      "Log experiments with parameters and metrics",
+      "Version datasets, models, and prompts",
+      "Compare runs and pick the best candidate",
+      "Make experiment results reproducible"
+    ],
+    "tools": ["Weights & Biases", "DVC", "Hugging Face Hub"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-26",
+    "day": 26,
+    "module": "MLOps",
+    "topic": "Observability & Tracing",
+    "learningObjectives": [
+      "Trace a request from prompt to response",
+      "Track latency, token usage, and cost per request",
+      "Instrument guardrail and retrieval steps",
+      "Build dashboards for live quality signals"
+    ],
+    "tools": ["LangSmith", "OpenTelemetry", "Grafana"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-27",
+    "day": 27,
+    "module": "Systems",
+    "topic": "System Design for AI Products",
+    "learningObjectives": [
+      "Sketch the architecture of an AI product",
+      "Choose where to cache and what to compute",
+      "Reason about concurrency and latency budgets",
+      "Estimate cost and scaling behavior"
+    ],
+    "tools": ["Postgres", "Redis", "Architecture diagrams"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-28",
+    "day": 28,
+    "module": "Systems",
+    "topic": "Production RAG Systems",
+    "learningObjectives": [
+      "Balance retrieval quality against latency",
+      "Keep indexed knowledge fresh",
+      "Handle empty and low-confidence retrievals",
+      "Run continuous evaluation in production"
+    ],
+    "tools": ["pgvector", "Vercel", "LangChain"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-29",
+    "day": 29,
+    "module": "Engineering",
+    "topic": "Backend & API Integration",
+    "learningObjectives": [
+      "Expose an AI assistant through Next.js API routes",
+      "Stream responses to the browser",
+      "Add authentication and usage limits",
+      "Wire webhooks for async job completion"
+    ],
+    "tools": ["Next.js", "TypeScript", "Vercel AI SDK"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-30",
+    "day": 30,
+    "module": "Deployment",
+    "topic": "Deployment & Monitoring",
+    "learningObjectives": [
+      "Containerize the application with Docker",
+      "Set up CI/CD with automated tests and checks",
+      "Ship behind feature flags with rollbacks",
+      "Alert on errors, latency, and cost anomalies"
+    ],
+    "tools": ["Docker", "GitHub Actions", "Vercel"],
+    "difficulty": "advanced"
+  },
+  {
+    "id": "day-31",
+    "day": 31,
+    "module": "Capstone",
+    "topic": "Capstone: Ship an Adaptive Interview Platform",
+    "learningObjectives": [
+      "Design and build an adaptive technical interviewer",
+      "Implement retrieval, evaluation, and guardrails end to end",
+      "Deploy a production-ready demo",
+      "Present architecture decisions and tradeoffs"
+    ],
+    "tools": ["Next.js", "OpenAI API", "Vercel", "Postgres"],
+    "difficulty": "advanced"
+  }
+]
