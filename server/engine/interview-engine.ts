@@ -11,7 +11,8 @@ export interface GenerateFirstQuestionInput {
  * Boundary between the interview flow and the AI layer.
  *
  * Phase 1 ships a deterministic mock engine. Phase 2 can provide an
- * LLM-backed implementation without touching the services that consume it.
+ * LLM-backed implementation (see server/engine/index.ts and server/ai/)
+ * without touching the services that consume it.
  */
 export interface InterviewEngine {
   generateFirstQuestion(input: GenerateFirstQuestionInput): Promise<InterviewQuestion>;
