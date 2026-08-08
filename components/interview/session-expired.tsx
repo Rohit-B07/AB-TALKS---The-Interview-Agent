@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export function SessionExpired() {
   return (
@@ -16,9 +16,9 @@ export function SessionExpired() {
             new interview to keep practicing.
           </p>
         </div>
-        <Button size="lg" render={<Link href="/" />}>
+        <Link href="/" className={buttonVariants({ size: "lg" })}>
           Start a new interview
-        </Button>
+        </Link>
       </div>
     </main>
   );

@@ -1,8 +1,9 @@
 import { ArrowRight, BrainCircuit, ListChecks, MessageSquareText, Sparkles } from "lucide-react";
 import { CandidatePicker } from "@/components/landing/candidate-picker";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { candidateService } from "@/server/services/candidate.service";
+import { cn } from "@/lib/utils";
 import { insightsService } from "@/server/services/insights.service";
 
 const FEATURES = [
@@ -40,10 +41,10 @@ export default async function Home() {
               </Badge>
             ))}
           </div>
-          <Button size="lg" render={<a href="#candidates" />} className="mt-2 gap-2">
+          <a href="#candidates" className={cn(buttonVariants({ size: "lg" }), "mt-2 gap-2")}>
             Choose Your Candidate
             <ArrowRight className="size-4" />
-          </Button>
+          </a>
         </div>
       </section>
 
