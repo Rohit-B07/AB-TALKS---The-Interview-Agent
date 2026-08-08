@@ -51,8 +51,10 @@ export class RedisSessionStore implements SessionStore {
       });
       console.log(`[session-store] create ok session=${session.id} key=${key}`);
     } catch (error) {
-      console.error(`[session-store] create FAILED session=${session.id} key=${key}`, error);
-      throw error;
+      console.error(
+        `[session-store] create FAILED session=${session.id} key=${key} error=${sanitizeError(error)}`
+      );
+      throw toStoreError();
     }
     return structuredClone(session);
   }
@@ -66,17 +68,27 @@ export class RedisSessionStore implements SessionStore {
       );
       return session ?? null;
     } catch (error) {
-      console.error(`[session-store] get ERROR session=${sessionId} key=${key}`, error);
-      throw error;
+      console.error(
+        `[session-store] get ERROR session=${sessionId} key=${key} error=${sanitizeError(error)}`
+      );
+      throw toStoreError();
     }
   }
 
   async update(session: InterviewSession): Promise<InterviewSession> {
     const key = this.key(session.id);
-    const result = await this.client.set(key, session, {
-      ex: this.options.ttlSeconds,
-      xx: true,
-    });
+    let result: unknown;
+    try {
+      result = await this.client.set(key, session, {
+        ex: this.options.ttlSeconds,
+        xx: true,
+      });
+    } catch (error) {
+      console.error(
+        `[session-store] update ERROR session=${session.id} key=${key} error=${sanitizeError(error)}`
+      );
+      throw toStoreError();
+    }
     if (result === null) {
       console.warn(`[session-store] update MISSING session=${session.id} key=${key}`);
       throw new AppError(
@@ -87,4 +99,32 @@ export class RedisSessionStore implements SessionStore {
     console.log(`[session-store] update ok session=${session.id} key=${key}`);
     return structuredClone(session);
   }
+}
+
+/**
+ * One-line, safe description of a storage error.
+ *
+ * Never includes the raw error message: @upstash/redis errors embed the full
+ * command, which contains the serialized interview session (candidate data,
+ * transcript, internal memory).
+ */
+function sanitizeError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.constructor.name;
+  }
+  return typeof error;
+}
+
+/**
+ * Maps any storage failure to a stable AppError with a generic message.
+ *
+ * The underlying error is intentionally not attached: it can carry the whole
+ * session payload, and attaching it would leak candidate data through the API
+ * error envelope and `handleApiError`'s "unexpected error" log.
+ */
+function toStoreError(): AppError {
+  return new AppError(
+    "SESSION_STORE_ERROR",
+    "Session storage is temporarily unavailable. Please try again."
+  );
 }

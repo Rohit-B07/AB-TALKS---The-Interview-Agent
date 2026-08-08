@@ -84,6 +84,14 @@ export function createSessionStore(): SessionStore {
       ttlSeconds: parsePositiveInt(process.env.SESSION_TTL_SECONDS, DEFAULT_SESSION_TTL_SECONDS),
     });
   }
+  if (url || token) {
+    console.warn(
+      "[session-store] Redis session storage is configured with only part of the credentials " +
+        "(UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN). " +
+        "Falling back to in-memory storage, which does not persist across serverless instances and " +
+        "will cause 'Session not found' after the first request."
+    );
+  }
   return new InMemorySessionStore();
 }
 
