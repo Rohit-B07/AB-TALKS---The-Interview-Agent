@@ -7,7 +7,7 @@ import { DEFAULT_PERSONALITY, MIN_QUESTIONS, MIN_UNIQUE_DAYS } from "@/server/ai
 import { getEligibleDays } from "@/server/ai/utils";
 import { candidateService } from "@/server/services/candidate.service";
 import { curriculumService } from "@/server/services/curriculum.service";
-import { sessionService } from "@/server/services/session.service";
+import { sessionService, type SessionService } from "@/server/services/session.service";
 import type {
   FinalEvaluation,
   InterviewerPersonality,
@@ -27,7 +27,8 @@ export class InterviewService {
   constructor(
     private readonly engine: InterviewEngine = createInterviewEngine(),
     private readonly memoryManager: MemoryManager = new MemoryManager(),
-    private readonly finalEvaluationService: FinalEvaluationService = new FinalEvaluationService()
+    private readonly finalEvaluationService: FinalEvaluationService = new FinalEvaluationService(),
+    private readonly sessions: SessionService = sessionService
   ) {}
 
   /**
@@ -60,7 +61,7 @@ export class InterviewService {
       mode: resolvedMode,
     });
 
-    const session = await sessionService.createSession({
+    const session = await this.sessions.createSession({
       id: sessionId,
       candidate,
       curriculum,
@@ -79,14 +80,14 @@ export class InterviewService {
    * generates the next question. Returns the updated interview state.
    */
   async submitAnswer(sessionId: string, answer: string): Promise<InterviewState> {
-    const session = await sessionService.getSession(sessionId);
+    const session = await this.sessions.getSession(sessionId);
 
     if (session.status === "completed") {
       return this.toState(session);
     }
 
     const question = session.currentQuestion;
-    if (!question || sessionService.hasAnswered(session, question.id)) {
+    if (!question || this.sessions.hasAnswered(session, question.id)) {
       throw new AppError(
         "QUESTION_ALREADY_ANSWERED",
         "This question has already been answered."
@@ -113,10 +114,10 @@ export class InterviewService {
       personality: session.personality,
     });
 
-    const recorded = await sessionService.recordAnswer(sessionId, answer, evaluation, updatedMemory);
+    const recorded = await this.sessions.recordAnswer(sessionId, answer, evaluation, updatedMemory);
 
     if (this.isComplete(recorded)) {
-      const completed = await sessionService.complete(recorded);
+      const completed = await this.sessions.complete(recorded);
       return this.toState(completed);
     }
 
@@ -132,12 +133,12 @@ export class InterviewService {
       mode: session.mode,
     });
 
-    const advanced = await sessionService.advance(sessionId, nextQuestion, source);
+    const advanced = await this.sessions.advance(sessionId, nextQuestion, source);
     return this.toState(advanced);
   }
 
   async getSession(sessionId: string): Promise<InterviewSession> {
-    return sessionService.getSession(sessionId);
+    return this.sessions.getSession(sessionId);
   }
 
   /**
@@ -146,7 +147,7 @@ export class InterviewService {
    * an active interview, and never regenerates an already-persisted one.
    */
   async getFinalEvaluation(sessionId: string): Promise<FinalEvaluation> {
-    const session = await sessionService.getSession(sessionId);
+    const session = await this.sessions.getSession(sessionId);
 
     if (session.status !== "completed") {
       throw new AppError(
@@ -159,7 +160,7 @@ export class InterviewService {
     }
 
     const evaluation = await this.finalEvaluationService.generate(session);
-    await sessionService.setFinalEvaluation(sessionId, evaluation);
+    await this.sessions.setFinalEvaluation(sessionId, evaluation);
     return evaluation;
   }
 
@@ -176,7 +177,7 @@ export class InterviewService {
   /** Maps a persisted session to the client-facing interview state. */
   toState(session: InterviewSession): InterviewState {
     const currentQuestionAnswered = session.currentQuestion
-      ? sessionService.hasAnswered(session, session.currentQuestion.id)
+      ? this.sessions.hasAnswered(session, session.currentQuestion.id)
       : false;
 
     return {

@@ -23,6 +23,7 @@ export const ErrorCodes = {
   AI_RATE_LIMITED: "AI_RATE_LIMITED",
   AI_TIMEOUT: "AI_TIMEOUT",
   AI_ERROR: "AI_ERROR",
+  SESSION_STORE_MISCONFIGURED: "SESSION_STORE_MISCONFIGURED",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
@@ -44,6 +45,7 @@ const HTTP_STATUS_BY_CODE: Record<ErrorCode, number> = {
   AI_RATE_LIMITED: 429,
   AI_TIMEOUT: 504,
   AI_ERROR: 502,
+  SESSION_STORE_MISCONFIGURED: 500,
 };
 
 export class AppError extends Error {

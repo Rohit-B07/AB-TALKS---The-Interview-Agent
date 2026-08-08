@@ -21,6 +21,9 @@ export async function handleStartInterview(request: Request): Promise<Response> 
       parsed.data.personality,
       parsed.data.mode
     );
+    console.log(
+      `[api] POST /api/interview/start created session=${result.sessionId} candidate=${parsed.data.candidateId}`
+    );
     return ok(result, startInterviewResponseSchema);
   } catch (error) {
     return handleApiError(error);

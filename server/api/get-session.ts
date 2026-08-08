@@ -5,6 +5,7 @@ import { interviewService } from "@/server/services/interview.service";
 export async function handleGetSession(_request: Request, sessionId: string): Promise<Response> {
   try {
     const session = await interviewService.getSession(sessionId);
+    console.log(`[api] GET /api/interview/[sessionId] found session=${sessionId}`);
     const state = interviewService.toState(session);
 
     const response = {
@@ -29,6 +30,7 @@ export async function handleGetSession(_request: Request, sessionId: string): Pr
 
     return ok(response, getSessionResponseSchema);
   } catch (error) {
+    console.log(`[api] GET /api/interview/[sessionId] MISSING session=${sessionId}`);
     return handleApiError(error);
   }
 }
