@@ -22,7 +22,7 @@ export default async function Home() {
         <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-4 py-16 text-center sm:py-24">
           <Badge className="gap-1.5">
             <Sparkles className="size-3" />
-            ABTalks AI Cohort · Phase 1
+            ABTalks AI Cohort · Phase 2
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
             Practice adaptive AI engineering interviews based on your learning journey

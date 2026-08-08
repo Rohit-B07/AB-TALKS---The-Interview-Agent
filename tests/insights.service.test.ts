@@ -4,7 +4,7 @@ import { candidateService } from "@/server/services/candidate.service";
 
 describe("InsightsService", () => {
   it("sara has high readiness with topics from her last completed days", async () => {
-    const sara = await candidateService.getCandidateById("candidate-sara");
+    const sara = await candidateService.getCandidateById("candidate-vatsal");
     const insights = await insightsService.getInsights(sara);
 
     expect(insights.completedDays).toBe(14);
@@ -17,7 +17,7 @@ describe("InsightsService", () => {
   });
 
   it("omar receives the no-skip bonus removed for his skipped day", async () => {
-    const omar = await candidateService.getCandidateById("candidate-omar");
+    const omar = await candidateService.getCandidateById("candidate-varun");
     const insights = await insightsService.getInsights(omar);
 
     expect(insights.completedDays).toBe(6);
@@ -27,7 +27,7 @@ describe("InsightsService", () => {
   });
 
   it("lina gets the earliest curriculum as her focus area", async () => {
-    const lina = await candidateService.getCandidateById("candidate-lina");
+    const lina = await candidateService.getCandidateById("candidate-rohit");
     const insights = await insightsService.getInsights(lina);
 
     expect(insights.completedDays).toBe(3);

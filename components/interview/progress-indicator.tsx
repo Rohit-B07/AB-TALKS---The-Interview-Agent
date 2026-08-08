@@ -3,10 +3,16 @@ import { Progress } from "@/components/ui/progress";
 interface ProgressIndicatorProps {
   questionNumber: number;
   estimatedQuestions: number;
+  progress?: number;
 }
 
-export function ProgressIndicator({ questionNumber, estimatedQuestions }: ProgressIndicatorProps) {
-  const percent = Math.min(100, Math.round((questionNumber / estimatedQuestions) * 100));
+export function ProgressIndicator({
+  questionNumber,
+  estimatedQuestions,
+  progress,
+}: ProgressIndicatorProps) {
+  const percent =
+    progress ?? Math.min(100, Math.round((questionNumber / estimatedQuestions) * 100));
 
   return (
     <div className="flex flex-col gap-1.5">

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { MODE_LABELS } from "@/prompts/mode";
 import type { CandidateInsights } from "@/server/services/insights.service";
 import type { Candidate } from "@/server/types";
 
@@ -130,8 +131,11 @@ export function CandidateCard({ candidate, insights, selected, onSelect }: Candi
         ) : null}
       </CardContent>
 
-      <CardFooter className="justify-between gap-2 text-xs text-muted-foreground">
-        <span>~{insights.estimatedQuestions} questions</span>
+      <CardFooter className="flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          ~{insights.estimatedQuestions} questions
+          <Badge variant="secondary">{MODE_LABELS[candidate.defaultMode]}</Badge>
+        </span>
         <span className="font-medium text-primary">{selected ? "Ready to begin" : "Tap to select"}</span>
       </CardFooter>
     </Card>

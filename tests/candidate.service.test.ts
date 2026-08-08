@@ -9,8 +9,8 @@ describe("CandidateService", () => {
   });
 
   it("returns the requested candidate by id", async () => {
-    const candidate = await candidateService.getCandidateById("candidate-sara");
-    expect(candidate.name).toBe("Sara Al-Rashid");
+    const candidate = await candidateService.getCandidateById("candidate-vatsal");
+    expect(candidate.name).toBe("Vatsal");
     expect(candidate.completedDays.length).toBeGreaterThan(0);
   });
 

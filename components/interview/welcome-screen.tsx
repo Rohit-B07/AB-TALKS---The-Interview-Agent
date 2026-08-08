@@ -1,4 +1,4 @@
-import { BrainCircuit, ListChecks, Play, Sparkles, Target, Timer } from "lucide-react";
+import { BrainCircuit, Code2, ListChecks, Play, Sparkles, Target, Timer } from "lucide-react";
 import { AvatarInitials } from "@/components/avatar-initials";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,10 +80,11 @@ export function WelcomeScreen({ welcome, onBegin }: WelcomeScreenProps) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <InfoChip icon={Timer} label="Estimated duration" value={`${welcome.estimatedMinutes} min`} />
         <InfoChip icon={ListChecks} label="Questions" value={`${welcome.estimatedQuestions}+`} />
-        <InfoChip icon={BrainCircuit} label="Adaptive" value="Follow-up enabled" />
+        <InfoChip icon={BrainCircuit} label="Interviewer" value={welcome.personalityLabel} />
+        <InfoChip icon={Code2} label="Mode" value={welcome.modeLabel} />
       </div>
 
       <Button size="lg" className="w-full gap-2" onClick={onBegin}>
@@ -92,7 +93,8 @@ export function WelcomeScreen({ welcome, onBegin }: WelcomeScreenProps) {
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        No scoring or feedback yet — Phase 1 focuses on the interview flow.
+        The interviewer adapts each question to your answers. No scoring is shown
+        during the interview.
       </p>
     </div>
   );

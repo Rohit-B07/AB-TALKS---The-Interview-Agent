@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { AnswerForm } from "@/components/interview/answer-form";
 import { ConversationLog } from "@/components/interview/conversation-log";
 import { ProgressIndicator } from "@/components/interview/progress-indicator";
@@ -10,6 +11,7 @@ import { ThinkingIndicator } from "@/components/interview/thinking-indicator";
 import { WelcomeScreen } from "@/components/interview/welcome-screen";
 import { ErrorState } from "@/components/error-state";
 import { LoadingState } from "@/components/loading-state";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 import type { WelcomeInfo } from "@/server/services/insights.service";
@@ -26,13 +28,26 @@ function toState(data: GetSessionResponse): InterviewState {
     sessionId: data.sessionId,
     status: data.metadata.status,
     candidate: data.candidate,
+    mode: data.metadata.mode,
     currentQuestion: data.currentQuestion,
     currentQuestionAnswered: data.metadata.currentQuestionAnswered,
     transcript: data.conversation,
+    currentQuestionNumber: data.metadata.currentQuestionNumber,
+    questionsAsked: data.metadata.questionsAsked,
+    questionsTarget: data.metadata.questionsTarget,
+    uniqueCurriculumDays: data.metadata.uniqueCurriculumDays,
+    progress: data.metadata.progress,
+    interviewComplete: data.metadata.interviewComplete,
     createdAt: data.metadata.createdAt,
     updatedAt: data.metadata.updatedAt,
   };
 }
+
+const THINKING_PHASES = [
+  "Analyzing your reasoning...",
+  "Checking your understanding...",
+  "Planning the next question...",
+];
 
 export function InterviewConsole({ sessionId, welcome, initialState }: InterviewConsoleProps) {
   const [state, setState] = useState<InterviewState | null>(initialState);
@@ -101,8 +116,8 @@ export function InterviewConsole({ sessionId, welcome, initialState }: Interview
     return null;
   }
 
-  const questionNumber = state.transcript.filter((turn) => turn.role === "assistant").length;
-  const showWelcome = !begun && !state.currentQuestionAnswered;
+  const hasAnsweredAny = state.transcript.some((turn) => turn.role === "candidate");
+  const showWelcome = !begun && !hasAnsweredAny;
 
   if (showWelcome) {
     return <WelcomeScreen welcome={welcome} onBegin={() => setBegun(true)} />;
@@ -118,8 +133,9 @@ export function InterviewConsole({ sessionId, welcome, initialState }: Interview
       />
 
       <ProgressIndicator
-        questionNumber={Math.max(1, questionNumber)}
-        estimatedQuestions={welcome.estimatedQuestions}
+        questionNumber={state.currentQuestionNumber}
+        estimatedQuestions={state.questionsTarget}
+        progress={state.progress}
       />
 
       {error ? <ErrorState title="Could not submit answer" message={error} /> : null}
@@ -129,23 +145,43 @@ export function InterviewConsole({ sessionId, welcome, initialState }: Interview
           {state.currentQuestion ? (
             <QuestionPanel
               question={state.currentQuestion}
-              questionNumber={questionNumber}
+              questionNumber={state.currentQuestionNumber}
               answered={state.currentQuestionAnswered}
             />
+          ) : state.interviewComplete ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Interview complete</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                  You answered {state.questionsAsked} questions across{" "}
+                  {state.uniqueCurriculumDays} curriculum areas.
+                </p>
+                <Link
+                  href={`/interview/${sessionId}/report`}
+                  className={buttonVariants({})}
+                >
+                  View your report
+                </Link>
+              </CardContent>
+            </Card>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No active question. Phase 2 will keep the interview going.
+              Preparing your next question…
             </p>
           )}
 
-          <AnswerForm
-            value={answer}
-            onChange={setAnswer}
-            onSubmit={handleSubmit}
-            disabled={loading}
-            submitting={submitting}
-            answered={state.currentQuestionAnswered}
-          />
+          {state.interviewComplete ? null : (
+            <AnswerForm
+              value={answer}
+              onChange={setAnswer}
+              onSubmit={handleSubmit}
+              disabled={loading}
+              submitting={submitting}
+              answered={state.currentQuestionAnswered}
+            />
+          )}
         </section>
 
         <aside className="flex flex-col gap-4">
@@ -157,7 +193,7 @@ export function InterviewConsole({ sessionId, welcome, initialState }: Interview
               <ConversationLog turns={state.transcript} />
             </CardContent>
           </Card>
-          {submitting ? <ThinkingIndicator /> : null}
+          {submitting ? <ThinkingIndicator phases={THINKING_PHASES} /> : null}
         </aside>
       </div>
     </div>

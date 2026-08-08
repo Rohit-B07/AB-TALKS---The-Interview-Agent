@@ -13,6 +13,10 @@ import { z } from "zod";
 export const difficultySchema = z.enum(["beginner", "intermediate", "advanced"]);
 export type Difficulty = z.infer<typeof difficultySchema>;
 
+/** The interview mode controls which question bank and evaluation style is used. */
+export const interviewModeSchema = z.enum(["ai_engineering", "dsa_friendly"]);
+export type InterviewMode = z.infer<typeof interviewModeSchema>;
+
 export const curriculumDaySchema = z.object({
   id: z.string().min(1),
   day: z.number().int().positive(),
@@ -33,6 +37,7 @@ export const candidateSchema = z.object({
   strengths: z.array(z.string().min(1)),
   weaknesses: z.array(z.string().min(1)),
   learningSignals: z.array(z.string().min(1)),
+  defaultMode: interviewModeSchema.default("ai_engineering"),
 });
 export type Candidate = z.infer<typeof candidateSchema>;
 
@@ -40,8 +45,74 @@ export type Candidate = z.infer<typeof candidateSchema>;
 // Interview domain
 // ---------------------------------------------------------------------------
 
-export const questionTypeSchema = z.enum(["conceptual", "coding", "open-ended"]);
+export const questionTypeSchema = z.enum([
+  "conceptual",
+  "practical",
+  "debugging",
+  "scenario",
+  "tradeoff",
+  "coding",
+  "open-ended",
+]);
 export type QuestionType = z.infer<typeof questionTypeSchema>;
+
+// ---------------------------------------------------------------------------
+// Interviewer personality & internal evaluation / memory
+// ---------------------------------------------------------------------------
+
+export const interviewerPersonalitySchema = z.enum([
+  "mentor",
+  "hiring_manager",
+  "senior_engineer",
+]);
+export type InterviewerPersonality = z.infer<typeof interviewerPersonalitySchema>;
+
+export const difficultyRecommendationSchema = z.enum(["same", "harder", "easier"]);
+export type DifficultyRecommendation = z.infer<typeof difficultyRecommendationSchema>;
+
+export const questionSourceSchema = z.enum(["ai", "fallback"]);
+export type QuestionSource = z.infer<typeof questionSourceSchema>;
+
+/**
+ * Internal evaluation of a single candidate answer. Never returned to the
+ * client: it lives in server-side session state only.
+ */
+export const evaluationSchema = z.object({
+  questionId: z.string().min(1),
+  score: z.number().min(1).max(5),
+  understanding: z.string().min(1),
+  strengths: z.array(z.string().min(1)),
+  weaknesses: z.array(z.string().min(1)),
+  needsFollowUp: z.boolean(),
+  followUpReason: z.string(),
+  memoryUpdate: z.string(),
+  confidence: z.number().min(0).max(1),
+  difficultyRecommendation: difficultyRecommendationSchema,
+});
+export type Evaluation = z.infer<typeof evaluationSchema>;
+
+/**
+ * Long-lived interview memory carried server-side across the whole session.
+ * Updated after every answer and consumed by the planner/question generator.
+ */
+export const interviewMemorySchema = z.object({
+  candidateId: z.string().min(1),
+  sessionId: z.string().min(1),
+  personality: interviewerPersonalitySchema,
+  questionNumber: z.number().int().nonnegative(),
+  totalTargetQuestions: z.number().int().positive(),
+  coveredDays: z.array(z.string().min(1)),
+  coveredTopics: z.array(z.string().min(1)),
+  questionHistory: z.array(z.string().min(1)),
+  answerHistory: z.array(z.string().min(1)),
+  strengths: z.array(z.string().min(1)),
+  knowledgeGaps: z.array(z.string().min(1)),
+  difficulty: difficultySchema,
+  currentStage: z.string().min(1),
+  lastEvaluation: evaluationSchema.nullable(),
+  conversationSummary: z.string().min(1),
+});
+export type InterviewMemory = z.infer<typeof interviewMemorySchema>;
 
 export const interviewQuestionSchema = z.object({
   id: z.string().min(1),
@@ -69,11 +140,74 @@ export const conversationTurnSchema = z.object({
   questionId: z.string().optional(),
   answerId: z.string().optional(),
   createdAt: z.string().min(1),
+  // Phase 3: per-question attribution metadata on assistant turns so the final
+  // evaluation can compute topic performance and difficulty progression.
+  difficulty: difficultySchema.optional(),
+  relatedDayIds: z.array(z.string().min(1)).optional(),
+  context: z.string().optional(),
 });
 export type ConversationTurn = z.infer<typeof conversationTurnSchema>;
 
 export const sessionStatusSchema = z.enum(["active", "completed"]);
 export type SessionStatus = z.infer<typeof sessionStatusSchema>;
+
+// ---------------------------------------------------------------------------
+// Final evaluation (Phase 3)
+// ---------------------------------------------------------------------------
+
+/** Overall readiness band shown on the final report. */
+export const readinessSchema = z.enum(["beginner", "developing", "intermediate", "strong"]);
+export type ReadinessLevel = z.infer<typeof readinessSchema>;
+
+/** How the candidate performed at a given difficulty level. */
+export const difficultyPerformanceSchema = z.enum(["strong", "developing", "weak", "not-reached"]);
+export type DifficultyPerformance = z.infer<typeof difficultyPerformanceSchema>;
+
+export const topicPerformanceSchema = z.object({
+  topic: z.string().min(1),
+  score: z.number().min(1).max(100),
+  questionsAsked: z.number().int().nonnegative(),
+  summary: z.string().min(1),
+});
+export type TopicPerformance = z.infer<typeof topicPerformanceSchema>;
+
+export const difficultyProgressionEntrySchema = z.object({
+  difficulty: difficultySchema,
+  performance: difficultyPerformanceSchema,
+  questionsAsked: z.number().int().nonnegative(),
+});
+export type DifficultyProgressionEntry = z.infer<typeof difficultyProgressionEntrySchema>;
+
+export const improvementQuestionSchema = z.object({
+  question: z.string().min(1),
+  topic: z.string().min(1),
+  issue: z.string().min(1),
+  improvement: z.string().min(1),
+});
+export type ImprovementQuestion = z.infer<typeof improvementQuestionSchema>;
+
+/**
+ * The candidate-facing final evaluation. Aggregation is deterministic and
+ * explainable; only the narrative fields (summary, topic summaries, adaptive
+ * behavior, recommendations) may be written by Gemini, with a deterministic
+ * fallback. Never contains raw evaluations, confidence, or internal memory.
+ */
+export const finalEvaluationSchema = z.object({
+  sessionId: z.string().min(1),
+  mode: interviewModeSchema,
+  createdAt: z.string().min(1),
+  overallScore: z.number().min(1).max(100),
+  readiness: readinessSchema,
+  summary: z.string().min(1),
+  topicPerformance: z.array(topicPerformanceSchema),
+  strengths: z.array(z.string().min(1)),
+  knowledgeGaps: z.array(z.string().min(1)),
+  improvementQuestions: z.array(improvementQuestionSchema),
+  difficultyProgression: z.array(difficultyProgressionEntrySchema),
+  adaptiveBehavior: z.string().min(1),
+  recommendations: z.array(z.string().min(1)),
+});
+export type FinalEvaluation = z.infer<typeof finalEvaluationSchema>;
 
 export const interviewSessionSchema = z.object({
   id: z.string().min(1),
@@ -81,7 +215,17 @@ export const interviewSessionSchema = z.object({
   curriculum: z.array(curriculumDaySchema),
   transcript: z.array(conversationTurnSchema),
   currentQuestion: interviewQuestionSchema.nullable(),
+  personality: interviewerPersonalitySchema,
+  mode: interviewModeSchema,
+  currentQuestionNumber: z.number().int().nonnegative(),
+  questionsAsked: z.number().int().nonnegative(),
+  coveredDays: z.array(z.string().min(1)),
+  coveredTopics: z.array(z.string().min(1)),
+  evaluations: z.array(evaluationSchema),
+  memory: interviewMemorySchema,
+  currentQuestionSource: questionSourceSchema.nullable(),
   status: sessionStatusSchema,
+  finalEvaluation: finalEvaluationSchema.nullable(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
@@ -92,9 +236,16 @@ export const interviewStateSchema = z.object({
   sessionId: z.string().min(1),
   status: sessionStatusSchema,
   candidate: candidateSchema,
+  mode: interviewModeSchema,
   currentQuestion: interviewQuestionSchema.nullable(),
   currentQuestionAnswered: z.boolean(),
   transcript: z.array(conversationTurnSchema),
+  currentQuestionNumber: z.number().int().positive(),
+  questionsAsked: z.number().int().nonnegative(),
+  questionsTarget: z.number().int().positive(),
+  uniqueCurriculumDays: z.number().int().nonnegative(),
+  progress: z.number().min(0).max(100),
+  interviewComplete: z.boolean(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
@@ -106,6 +257,8 @@ export type InterviewState = z.infer<typeof interviewStateSchema>;
 
 export const startInterviewRequestSchema = z.object({
   candidateId: z.string().min(1, "candidateId is required"),
+  personality: interviewerPersonalitySchema.default("hiring_manager"),
+  mode: interviewModeSchema.optional(),
 });
 export type StartInterviewRequest = z.infer<typeof startInterviewRequestSchema>;
 
@@ -136,9 +289,16 @@ export const getSessionResponseSchema = z.object({
   candidate: candidateSchema,
   metadata: z.object({
     status: sessionStatusSchema,
+    mode: interviewModeSchema,
     createdAt: z.string().min(1),
     updatedAt: z.string().min(1),
     currentQuestionAnswered: z.boolean(),
+    currentQuestionNumber: z.number().int().positive(),
+    questionsAsked: z.number().int().nonnegative(),
+    questionsTarget: z.number().int().positive(),
+    uniqueCurriculumDays: z.number().int().nonnegative(),
+    progress: z.number().min(0).max(100),
+    interviewComplete: z.boolean(),
   }),
   currentQuestion: interviewQuestionSchema.nullable(),
   conversation: z.array(conversationTurnSchema),
@@ -149,3 +309,8 @@ export const listCandidatesResponseSchema = z.object({
   candidates: z.array(candidateSchema),
 });
 export type ListCandidatesResponse = z.infer<typeof listCandidatesResponseSchema>;
+
+export const getFinalEvaluationResponseSchema = z.object({
+  evaluation: finalEvaluationSchema,
+});
+export type GetFinalEvaluationResponse = z.infer<typeof getFinalEvaluationResponseSchema>;

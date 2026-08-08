@@ -1,9 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { interviewService } from "@/server/services/interview.service";
+import { MockInterviewEngine } from "@/server/engine";
+import { InterviewService } from "@/server/services/interview.service";
 
-describe("InterviewService", () => {
+function makeService(): InterviewService {
+  return new InterviewService(new MockInterviewEngine());
+}
+
+const STRONG_ANSWER =
+  "I would split the data into train and test sets, build a scikit-learn pipeline with " +
+  "preprocessing steps, train a regression and a classification model, and evaluate them " +
+  "with accuracy, precision, and recall before tuning hyperparameters with grid search.";
+
+describe("InterviewService (adaptive flow)", () => {
   it("starts an interview and generates a first question from the candidate's journey", async () => {
-    const result = await interviewService.startInterview("candidate-sara");
+    const service = makeService();
+    const result = await service.startInterview("candidate-vatsal");
 
     expect(result.sessionId).toMatch(/^[0-9a-f-]{36}$/);
     expect(result.question.relatedDayIds).toContain("day-14");
@@ -13,50 +24,65 @@ describe("InterviewService", () => {
     expect(result.state.currentQuestionAnswered).toBe(false);
     expect(result.state.transcript.length).toBe(1);
     expect(result.state.transcript[0].role).toBe("assistant");
+    expect(result.state.questionsTarget).toBe(8);
+    expect(result.state.progress).toBeGreaterThan(0);
+    expect(result.state.interviewComplete).toBe(false);
   });
 
-  it("falls back to the earliest curriculum day when the candidate has no completed days", async () => {
-    const result = await interviewService.startInterview("candidate-lina");
-    // Lina's most advanced completed day is day-4.
+  it("falls back to the most advanced completed day for a candidate with fewer days", async () => {
+    const service = makeService();
+    const result = await service.startInterview("candidate-rohit");
     expect(result.question.relatedDayIds).toContain("day-4");
   });
 
+  it("respects the requested interviewer personality", async () => {
+    const service = makeService();
+    const result = await service.startInterview("candidate-vatsal", "senior_engineer");
+    const session = await service.getSession(result.sessionId);
+    expect(session.personality).toBe("senior_engineer");
+  });
+
   it("rejects starting an interview for an unknown candidate", async () => {
-    await expect(interviewService.startInterview("ghost")).rejects.toMatchObject({
+    const service = makeService();
+    await expect(service.startInterview("ghost")).rejects.toMatchObject({
       code: "INVALID_CANDIDATE",
       status: 404,
     });
   });
 
-  it("records an answer and flags the question as answered", async () => {
-    const { sessionId } = await interviewService.startInterview("candidate-omar");
-    const state = await interviewService.submitAnswer(
-      sessionId,
-      "I would start by splitting the data into train and test sets."
-    );
+  it("records an answer, evaluates it, updates memory, and advances to the next question", async () => {
+    const service = makeService();
+    const { sessionId } = await service.startInterview("candidate-varun");
+    const state = await service.submitAnswer(sessionId, STRONG_ANSWER);
 
-    expect(state.currentQuestionAnswered).toBe(true);
-    expect(state.transcript.length).toBe(2);
+    expect(state.currentQuestionAnswered).toBe(false);
+    expect(state.transcript.length).toBe(3);
     expect(state.transcript[1].role).toBe("candidate");
     expect(state.transcript[1].content).toContain("train and test");
-  });
+    expect(state.questionsAsked).toBe(2);
+    expect(state.currentQuestionNumber).toBe(2);
 
-  it("rejects a second answer to the same question", async () => {
-    const { sessionId } = await interviewService.startInterview("candidate-sara");
-    await interviewService.submitAnswer(sessionId, "First attempt.");
-
-    await expect(interviewService.submitAnswer(sessionId, "Second attempt.")).rejects.toMatchObject(
-      {
-        code: "QUESTION_ALREADY_ANSWERED",
-        status: 400,
-      }
-    );
+    const session = await service.getSession(sessionId);
+    expect(session.evaluations.length).toBe(1);
+    expect(session.evaluations[0].questionId).toBe(session.transcript[0].questionId);
+    expect(session.memory.questionNumber).toBe(1);
+    expect(session.memory.coveredDays.length).toBeGreaterThanOrEqual(1);
+    expect(session.memory.lastEvaluation).not.toBeNull();
   });
 
   it("throws INVALID_SESSION when submitting to an unknown session", async () => {
-    await expect(interviewService.submitAnswer("ghost", "anything")).rejects.toMatchObject({
+    const service = makeService();
+    await expect(service.submitAnswer("ghost", "anything")).rejects.toMatchObject({
       code: "INVALID_SESSION",
       status: 404,
     });
+  });
+
+  it("keeps the session retrievable after answers (persistence)", async () => {
+    const service = makeService();
+    const { sessionId } = await service.startInterview("candidate-vatsal");
+    await service.submitAnswer(sessionId, STRONG_ANSWER);
+    const restored = await service.getSession(sessionId);
+    expect(restored.transcript.length).toBeGreaterThanOrEqual(3);
   });
 });

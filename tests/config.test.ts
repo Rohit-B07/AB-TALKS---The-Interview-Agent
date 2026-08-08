@@ -44,7 +44,7 @@ describe("lib/config", () => {
       { GEMINI_API_KEY: undefined, GEMINI_MODEL: undefined, AI_TIMEOUT_MS: "abc", AI_MAX_RETRIES: "-3" },
       () => {
         const cfg = getAppConfig();
-        expect(cfg.ai.geminiModel).toBe("gemini-2.5-flash");
+        expect(cfg.ai.geminiModel).toBe("gemini-flash-latest");
         expect(cfg.ai.timeoutMs).toBe(30_000);
         expect(cfg.ai.maxRetries).toBe(2);
       }

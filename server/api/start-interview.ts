@@ -16,7 +16,11 @@ export async function handleStartInterview(request: Request): Promise<Response> 
       });
     }
 
-    const result = await interviewService.startInterview(parsed.data.candidateId);
+    const result = await interviewService.startInterview(
+      parsed.data.candidateId,
+      parsed.data.personality,
+      parsed.data.mode
+    );
     return ok(result, startInterviewResponseSchema);
   } catch (error) {
     return handleApiError(error);

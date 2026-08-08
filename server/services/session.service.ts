@@ -5,8 +5,14 @@ import type {
   Candidate,
   ConversationTurn,
   CurriculumDay,
+  Evaluation,
+  FinalEvaluation,
+  InterviewMemory,
+  InterviewMode,
   InterviewQuestion,
   InterviewSession,
+  InterviewerPersonality,
+  QuestionSource,
 } from "@/server/types";
 
 export interface CreateSessionInput {
@@ -14,11 +20,14 @@ export interface CreateSessionInput {
   candidate: Candidate;
   curriculum: CurriculumDay[];
   firstQuestion: InterviewQuestion;
+  personality: InterviewerPersonality;
+  mode: InterviewMode;
+  initialMemory: InterviewMemory;
 }
 
 /**
  * Owns the shape and lifecycle of an interview session: creation, lookups,
- * and recording answers into the transcript.
+ * recording answers, advancing to the next question, and completion.
  */
 export class SessionService {
   constructor(private readonly store: SessionStore) {}
@@ -30,8 +39,16 @@ export class SessionService {
       role: "assistant",
       content: input.firstQuestion.prompt,
       questionId: input.firstQuestion.id,
+      difficulty: input.firstQuestion.difficulty,
+      relatedDayIds: input.firstQuestion.relatedDayIds,
+      context: input.firstQuestion.context,
       createdAt: now,
     };
+
+    const { coveredDays, coveredTopics } = this.coverageFromQuestion(
+      input.curriculum,
+      input.firstQuestion
+    );
 
     const session: InterviewSession = {
       id: input.id,
@@ -39,7 +56,17 @@ export class SessionService {
       curriculum: input.curriculum,
       transcript: [firstTurn],
       currentQuestion: input.firstQuestion,
+      personality: input.personality,
+      mode: input.mode,
+      currentQuestionNumber: 1,
+      questionsAsked: 1,
+      coveredDays,
+      coveredTopics,
+      evaluations: [],
+      memory: { ...input.initialMemory, coveredDays, coveredTopics },
+      currentQuestionSource: null,
       status: "active",
+      finalEvaluation: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -56,11 +83,15 @@ export class SessionService {
   }
 
   /**
-   * Records a candidate's answer to the current question in the transcript.
-   * Phase 1 does not generate a follow-up question, so the current question
-   * stays in place until a later phase advances the interview.
+   * Records the candidate's answer to the current question plus the internal
+   * evaluation and updated memory. Does not advance the interview.
    */
-  async submitAnswer(sessionId: string, content: string): Promise<InterviewSession> {
+  async recordAnswer(
+    sessionId: string,
+    answer: string,
+    evaluation: Evaluation,
+    memory: InterviewMemory
+  ): Promise<InterviewSession> {
     const session = await this.getSession(sessionId);
     const question = session.currentQuestion;
 
@@ -74,14 +105,70 @@ export class SessionService {
     const turn: ConversationTurn = {
       id: randomUUID(),
       role: "candidate",
-      content,
+      content: answer,
       questionId: question.id,
       createdAt: new Date().toISOString(),
     };
 
     session.transcript.push(turn);
+    session.evaluations.push(evaluation);
+    session.memory = memory;
     session.updatedAt = new Date().toISOString();
 
+    return this.store.update(session);
+  }
+
+  /** Advances the interview to the next question and tracks coverage. */
+  async advance(
+    sessionId: string,
+    question: InterviewQuestion,
+    source: QuestionSource
+  ): Promise<InterviewSession> {
+    const session = await this.getSession(sessionId);
+    const now = new Date().toISOString();
+
+    const turn: ConversationTurn = {
+      id: randomUUID(),
+      role: "assistant",
+      content: question.prompt,
+      questionId: question.id,
+      difficulty: question.difficulty,
+      relatedDayIds: question.relatedDayIds,
+      context: question.context,
+      createdAt: now,
+    };
+
+    const { coveredDays, coveredTopics } = this.coverageFromQuestion(session.curriculum, question);
+
+    session.transcript.push(turn);
+    session.currentQuestion = question;
+    session.currentQuestionSource = source;
+    session.questionsAsked += 1;
+    session.currentQuestionNumber += 1;
+    session.coveredDays = this.mergeUnique(session.coveredDays, coveredDays);
+    session.coveredTopics = this.mergeUnique(session.coveredTopics, coveredTopics);
+    session.updatedAt = now;
+
+    return this.store.update(session);
+  }
+
+  /** Marks the session complete; clears the active question. */
+  async complete(session: InterviewSession): Promise<InterviewSession> {
+    session.status = "completed";
+    session.currentQuestion = null;
+    session.currentQuestionSource = null;
+    session.updatedAt = new Date().toISOString();
+    return this.store.update(session);
+  }
+
+  /** Persists the final evaluation for a completed session. */
+  async setFinalEvaluation(
+    sessionId: string,
+    evaluation: FinalEvaluation
+  ): Promise<InterviewSession> {
+    const session = await this.getSession(sessionId);
+    session.finalEvaluation = evaluation;
+    session.updatedAt = new Date().toISOString();
     return this.store.update(session);
   }
 
@@ -90,6 +177,23 @@ export class SessionService {
     return session.transcript.some(
       (turn) => turn.role === "candidate" && turn.questionId === questionId
     );
+  }
+
+  private coverageFromQuestion(
+    curriculum: CurriculumDay[],
+    question: InterviewQuestion
+  ): { coveredDays: string[]; coveredTopics: string[] } {
+    const coveredDays = [...question.relatedDayIds];
+    const coveredTopics = question.relatedDayIds.map(
+      (id) => curriculum.find((day) => day.id === id)?.topic ?? id
+    );
+    return { coveredDays, coveredTopics };
+  }
+
+  private mergeUnique(existing: string[], incoming: string[]): string[] {
+    const set = new Set(existing);
+    for (const value of incoming) set.add(value);
+    return [...set];
   }
 }
 

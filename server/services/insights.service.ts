@@ -32,6 +32,8 @@ export interface WelcomeInfo {
   estimatedMinutes: string;
   estimatedQuestions: number;
   completion: string;
+  personalityLabel: string;
+  modeLabel: string;
 }
 
 function readinessLabel(score: number): CandidateInsights["readinessLabel"] {

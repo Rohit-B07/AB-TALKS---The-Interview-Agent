@@ -1,7 +1,8 @@
 [
   {
-    "id": "candidate-sara",
-    "name": "Sara Al-Rashid",
+    "id": "candidate-vatsal",
+    "name": "Vatsal",
+    "defaultMode": "ai_engineering",
     "completedDays": [
       "day-1",
       "day-2",
@@ -20,17 +21,23 @@
     ],
     "skippedDays": [],
     "attempts": 2,
-    "strengths": ["Python & data tooling", "LLM APIs", "Retrieval pipelines"],
-    "weaknesses": ["Large-system design", "Evaluation methodology"],
+    "strengths": [
+      "Python",
+      "LLM APIs",
+      "RAG fundamentals",
+      "Practical implementation"
+    ],
+    "weaknesses": ["System design", "Evaluation methodology"],
     "learningSignals": [
-      "completes every assignment",
+      "understands concepts after concrete examples",
       "writes precise, well-structured answers",
       "needs scaffolding when asked about end-to-end system tradeoffs"
     ]
   },
   {
-    "id": "candidate-omar",
-    "name": "Omar Haddad",
+    "id": "candidate-varun",
+    "name": "Varun",
+    "defaultMode": "ai_engineering",
     "completedDays": [
       "day-1",
       "day-2",
@@ -41,26 +48,38 @@
     ],
     "skippedDays": ["day-4"],
     "attempts": 4,
-    "strengths": ["Fast hands-on debugging", "Quick on coding tasks"],
-    "weaknesses": ["Statistics fundamentals", "Transformer theory"],
+    "strengths": [
+      "Debugging",
+      "Coding tasks",
+      "Python",
+      "Practical experimentation"
+    ],
+    "weaknesses": ["Mathematical foundations", "Deep theory", "Transformer internals"],
     "learningSignals": [
-      "skips videos and reads code first",
-      "moves fast on practical tasks",
-      "shows shallow understanding of theoretical concepts"
+      "learns by building and experimenting",
+      "moves fast on practical coding tasks",
+      "may struggle with abstract theoretical questions"
     ]
   },
   {
-    "id": "candidate-lina",
-    "name": "Lina Mansour",
+    "id": "candidate-rohit",
+    "name": "Rohit",
+    "defaultMode": "dsa_friendly",
     "completedDays": ["day-1", "day-3", "day-4"],
     "skippedDays": ["day-2"],
     "attempts": 1,
-    "strengths": ["Solid fundamentals", "Consistent daily practice"],
-    "weaknesses": ["Confidence with ML tooling", "Math notation"],
+    "strengths": [
+      "Arrays",
+      "Strings",
+      "Basic problem solving",
+      "Logical reasoning",
+      "Basic complexity analysis"
+    ],
+    "weaknesses": ["Advanced algorithms", "Dynamic programming", "Complex graph algorithms"],
     "learningSignals": [
-      "practices daily and shares work early",
-      "asks clarifying questions",
-      "needs extra time when a concept is introduced"
+      "learns through worked examples",
+      "comfortable explaining his approach out loud",
+      "still developing advanced algorithmic knowledge"
     ]
   }
 ]

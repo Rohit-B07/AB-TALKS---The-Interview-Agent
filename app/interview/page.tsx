@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { InterviewConsole } from "@/components/interview/interview-console";
 import { SessionExpired } from "@/components/interview/session-expired";
+import { PERSONALITY_LABELS } from "@/prompts/personality";
+import { MODE_LABELS } from "@/prompts/mode";
 import { insightsService } from "@/server/services/insights.service";
 import { interviewService } from "@/server/services/interview.service";
 import type { WelcomeInfo } from "@/server/services/insights.service";
@@ -31,6 +33,8 @@ export default async function InterviewPage({ searchParams }: InterviewPageProps
     estimatedMinutes: `${insights.estimatedMinutes.min}–${insights.estimatedMinutes.max}`,
     estimatedQuestions: insights.estimatedQuestions,
     completion: `${insights.completedDays} of ${insights.totalDays}`,
+    personalityLabel: PERSONALITY_LABELS[session.personality],
+    modeLabel: MODE_LABELS[session.mode],
   };
 
   return (

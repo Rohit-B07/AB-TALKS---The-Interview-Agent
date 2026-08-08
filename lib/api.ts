@@ -18,6 +18,7 @@ export const ErrorCodes = {
   INVALID_CANDIDATE: "INVALID_CANDIDATE",
   MISSING_ANSWER: "MISSING_ANSWER",
   QUESTION_ALREADY_ANSWERED: "QUESTION_ALREADY_ANSWERED",
+  EVALUATION_NOT_AVAILABLE: "EVALUATION_NOT_AVAILABLE",
 } as const;
 
 export class ApiError extends Error {
@@ -81,6 +82,8 @@ export function describeError(error: unknown): string {
         return "Please write an answer before submitting.";
       case ErrorCodes.QUESTION_ALREADY_ANSWERED:
         return "This question was already answered.";
+      case ErrorCodes.EVALUATION_NOT_AVAILABLE:
+        return "Your report will be available once the interview is complete.";
       default:
         return error.message;
     }

@@ -54,8 +54,8 @@ export function AnswerForm({
       />
       <p id="answer-hint" className="text-xs text-muted-foreground">
         {answered
-          ? "Answer recorded. Follow-up questions arrive in Phase 2."
-          : "A clear, structured answer helps the interviewer understand your thinking."}
+          ? "Answer recorded. The interviewer will continue in a moment."
+          : "A clear, structured answer helps the interviewer understand your thinking. The next question adapts to what you write."}
       </p>
       <Button type="submit" size="lg" disabled={!canSubmit} className="self-start gap-2">
         {submitting ? "Submitting..." : "Submit answer"}

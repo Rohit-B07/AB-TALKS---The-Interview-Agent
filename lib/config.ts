@@ -8,7 +8,7 @@ import { AppError } from "@/server/errors/app-error";
  * Next.js loads .env.local natively; no extra dotenv wiring is required.
  */
 
-export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 export const DEFAULT_AI_TIMEOUT_MS = 30_000;
 export const DEFAULT_AI_MAX_RETRIES = 2;
 

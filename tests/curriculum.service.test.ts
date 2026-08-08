@@ -10,13 +10,13 @@ describe("CurriculumService", () => {
   });
 
   it("returns completed days sorted by curriculum order", async () => {
-    const lina = await candidateService.getCandidateById("candidate-lina");
+    const lina = await candidateService.getCandidateById("candidate-rohit");
     const completed = await curriculumService.getCompletedDays(lina);
     expect(completed.map((day) => day.day)).toEqual([1, 3, 4]);
   });
 
   it("returns the most advanced completed day for a candidate", async () => {
-    const sara = await candidateService.getCandidateById("candidate-sara");
+    const sara = await candidateService.getCandidateById("candidate-vatsal");
     const last = await curriculumService.getLastCompletedDay(sara);
     expect(last).not.toBeNull();
     expect(last!.id).toBe("day-14");
@@ -26,6 +26,7 @@ describe("CurriculumService", () => {
     const last = await curriculumService.getLastCompletedDay({
       id: "candidate-empty",
       name: "Empty",
+      defaultMode: "ai_engineering",
       completedDays: [],
       skippedDays: [],
       attempts: 0,

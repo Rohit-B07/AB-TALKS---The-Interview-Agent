@@ -6,8 +6,9 @@ questions based on the candidate's learning journey.
 
 - **Phase 1** ships a fully working interview flow with deterministic mock
   questions, sessions, and a polished UI.
-- **Phase 2** swaps the mock engine for Gemini-backed planning, questioning,
-  evaluation, and memory (the AI layer is prepared but not yet active).
+- **Phase 2** activates Gemini-backed planning, questioning, evaluation, and
+  memory. Every AI call has a deterministic fallback, so an interview never
+  crashes during an API outage.
 
 ## Getting Started
 
@@ -33,8 +34,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ## AI Setup
 
-Phase 1 does not require any AI configuration. Before Phase 2 runs, add your
-Google Gemini API key:
+The interviewer runs on Google Gemini. Without a key the app still works: every
+Gemini call degrades to a deterministic, curriculum-aware fallback so the
+interview continues (with the question source tracked internally as `fallback`).
 
 1. Copy the environment template:
 
@@ -60,6 +62,24 @@ No other setup is required. The app reads the key, validates it, and prepares
 the Gemini client lazily. Optional tuning knobs live in `.env.example`
 (`GEMINI_MODEL`, `AI_TIMEOUT_MS`, `AI_MAX_RETRIES`, `AI_DEBUG`).
 
+## How the adaptive interview works
+
+Each candidate answer flows through four AI services:
+
+1. **Planner** decides the next step (new topic, follow-up, harder, or clarify),
+   aiming for at least 4 distinct curriculum days across the interview.
+2. **Question generator** turns the decision into a concrete, never-repeated
+   question grounded in the candidate's curriculum and prior answers.
+3. **Answer evaluator** scores the answer (1-5), extracts strengths and gaps,
+   and recommends a difficulty direction.
+4. **Memory** is updated after every answer (coverage, strengths, gaps, one-step
+   difficulty progression, stage) and fed back into the next planning pass.
+
+The interview completes after 8 questions spanning at least 4 curriculum days.
+Every service validates Gemini's structured output, retries once with a
+correction prompt, and falls back to a deterministic rule set if the model is
+unavailable or returns garbage.
+
 ## Architecture
 
 ```
@@ -68,14 +88,15 @@ components/           React UI (landing, interview console)
 lib/                  Shared client/server helpers
   ai/                 Gemini client, retries, error mapping, logging
   config.ts           Environment config + validation
-prompts/              Phase 2 prompt templates (placeholders)
+prompts/              Phase 2 prompt templates
 server/
-  ai/                 Phase 2 AI service classes (placeholders)
+  ai/                 AI services (planner, question generator, evaluator,
+                      memory) + deterministic fallbacks
   api/                Request handling for the REST endpoints
-  engine/             Mock interview engine (Phase 2 swap point)
+  engine/             Interview engine factory + Gemini engine orchestration
   errors/             Domain errors + error codes
   schemas/            Zod schemas (single source of truth)
-  services/           Business logic (candidates, curriculum, sessions)
+  services/           Business logic (candidates, curriculum, sessions, interviews)
   store/              In-memory session store
 ```
 
