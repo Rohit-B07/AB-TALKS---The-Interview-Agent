@@ -21,6 +21,14 @@ const READINESS_ADJECTIVE: Record<EvaluationEvidence["readiness"], string> = {
 };
 
 /** 2-4 sentence overall summary built purely from the evidence. */
+/**
+ * 2-4 sentence overall summary built purely from the evidence.
+ *
+ * Positive phrasing is gated on actual scores: "strongest in X ... with
+ * consistent understanding" is only used when the best topic is genuinely
+ * strong (>= 75). Minimum-level performance is described as such, never with
+ * misleading praise.
+ */
 export function summaryFallback(evidence: EvaluationEvidence): string {
   const name = evidence.candidate.name.split(" ")[0] || evidence.candidate.name;
   const sentences: string[] = [];
@@ -32,18 +40,32 @@ export function summaryFallback(evidence: EvaluationEvidence): string {
   const best = [...evidence.topics].sort((a, b) => b.score - a.score)[0];
   const worst = [...evidence.topics].sort((a, b) => a.score - b.score)[0];
 
-  if (best) {
+  if (evidence.overallScore < 50) {
+    // Minimum-level performance: unambiguous, negative framing.
+    sentences.push(
+      best
+        ? `Performance was at or below the minimum level: even the best topic (${best.topic}, ${best.score}/100) was below passing, so substantial improvement is needed across all topics.`
+        : "Performance was consistently below the passing level, and substantial improvement is needed."
+    );
+  } else if (best && best.score >= 75) {
     sentences.push(
       `They were strongest in ${best.topic}, where they answered ${best.questionsAsked} question${best.questionsAsked === 1 ? "" : "s"} with consistent understanding.`
     );
+  } else if (best) {
+    sentences.push(
+      `The area with the highest score was ${best.topic} (${best.score}/100), which still needs further practice.`
+    );
   }
+
   if (worst && best && worst.score < best.score - 10) {
     sentences.push(`${worst.topic} showed clear room for improvement.`);
   }
 
   if (evidence.idkCount > 0) {
     sentences.push(
-      "They needed support when facing unfamiliar concepts, and generally recovered after a simpler follow-up."
+      evidence.overallScore < 50
+        ? "They repeatedly indicated they did not know the answer, and struggled to recover even with simpler follow-ups."
+        : "They needed support when facing unfamiliar concepts, and generally recovered after a simpler follow-up."
     );
   } else if (evidence.secondHalfAvg > evidence.firstHalfAvg + 0.3) {
     sentences.push("Performance improved as the interview progressed.");
@@ -174,9 +196,13 @@ export function assembleFinalEvaluation(
     topic: topic.topic,
     score: topic.score,
     questionsAsked: topic.questionsAsked,
+    // Below 50 the deterministic summary is always used so a failing topic
+    // is never described with positive LLM phrasing.
     summary:
-      topicSummaryMap.get(topic.topic.trim().toLowerCase()) ??
-      topicSummaryFallback(topic.topic, topic.score, topic.questionsAsked),
+      topic.score < 50
+        ? topicSummaryFallback(topic.topic, topic.score, topic.questionsAsked)
+        : topicSummaryMap.get(topic.topic.trim().toLowerCase()) ??
+          topicSummaryFallback(topic.topic, topic.score, topic.questionsAsked),
   }));
 
   return {
@@ -185,7 +211,12 @@ export function assembleFinalEvaluation(
     createdAt: new Date().toISOString(),
     overallScore: evidence.overallScore,
     readiness: evidence.readiness,
-    summary: narrative?.summary.trim() || summaryFallback(evidence),
+    // A minimum-level overall score is always described with the deterministic
+    // negative summary; Gemini narrative is never allowed to soften it.
+    summary:
+      evidence.overallScore < 50
+        ? summaryFallback(evidence)
+        : narrative?.summary.trim() || summaryFallback(evidence),
     topicPerformance,
     strengths: evidence.strengths,
     knowledgeGaps: evidence.knowledgeGaps,

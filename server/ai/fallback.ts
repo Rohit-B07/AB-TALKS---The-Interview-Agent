@@ -11,7 +11,6 @@ import type {
 } from "@/server/types";
 import type { EvaluationResult, PlannerDecision } from "@/server/ai/schemas";
 import {
-  DSA_REASONING_KEYWORDS,
   DSA_TOPICS,
   dsaTopicByName,
   dsaTopicFromContext,
@@ -393,16 +392,96 @@ function createDsaFallbackQuestion(input: FallbackQuestionInput): InterviewQuest
   };
 }
 
-function keywordScore(answer: string, curriculum: CurriculumDay[], dayId: string): number {
-  const day = getDayById(curriculum, dayId);
-  if (!day) return 0;
-  const keywords = [...day.learningObjectives, ...day.tools]
-    .flatMap((text) => text.split(/\s+/))
-    .map((word) => word.replace(/[^a-zA-Z0-9]/g, "").toLowerCase())
-    .filter((word) => word.length > 3);
-  const unique = [...new Set(keywords)];
-  const lower = answer.toLowerCase();
-  return unique.filter((word) => lower.includes(word)).length;
+/**
+ * Deterministic heuristic evaluation used only when Gemini is unavailable.
+ *
+ * Relevance is the primary signal: an answer is only credited when it engages
+ * the vocabulary of the specific question and its topic. Length, keyword
+ * density, and reasoning phrases can never, by themselves, raise a score.
+ *
+ * The ceiling is hard-capped at 4/5 because a deterministic heuristic cannot
+ * verify a correct answer (5/5). When relevance cannot be established, the
+ * score stays conservative instead of rewarding verbosity.
+ */
+
+/** Words that carry no topical signal. */
+const STOPWORDS = new Set([
+  "a", "about", "all", "also", "an", "and", "any", "are", "as", "at", "be",
+  "been", "being", "but", "by", "can", "could", "did", "do", "does", "for",
+  "from", "get", "got", "had", "has", "have", "how", "i", "if", "in", "into",
+  "is", "it", "its", "just", "like", "make", "me", "might", "more", "most",
+  "much", "my", "no", "not", "of", "on", "one", "only", "or", "our", "out",
+  "over", "really", "same", "say", "should", "so", "some", "such", "than",
+  "that", "the", "their", "them", "then", "there", "these", "they", "this",
+  "those", "through", "to", "too", "use", "used", "using", "very", "want",
+  "was", "way", "we", "were", "what", "when", "where", "which", "while",
+  "who", "will", "with", "would", "you", "your",
+]);
+
+/** Splits free text into a de-duplicated list of significant tokens. */
+function significantTokens(...texts: string[]): string[] {
+  const seen = new Set<string>();
+  const tokens: string[] = [];
+  for (const raw of texts.join(" ").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)) {
+    if (raw.length < 3 || STOPWORDS.has(raw) || seen.has(raw)) continue;
+    seen.add(raw);
+    tokens.push(raw);
+  }
+  return tokens;
+}
+
+/**
+ * True when the answer contains the token or a common inflection of it
+ * (prefix matching keeps e.g. "retrieval" matching "retrieves").
+ */
+function answerContainsToken(answer: string, token: string): boolean {
+  if (answer.includes(token)) return true;
+  const prefixLength = token.length >= 7 ? 5 : token.length >= 5 ? 4 : 3;
+  const prefix = token.slice(0, prefixLength);
+  return prefix.length >= 3 && answer.includes(prefix);
+}
+
+/** How many of the given tokens the answer actually engages with. */
+function relevanceMatches(answer: string, tokens: string[]): number {
+  return tokens.filter((token) => answerContainsToken(answer, token)).length;
+}
+
+/** Secondary signal: the answer walks through a reasoning structure. */
+function hasReasoningStructure(answer: string): boolean {
+  return /\b(step|first|then|next|because|if|when|while|compare|check|track|return|would)\b|\(\)|\[\]|=>|=/.test(
+    answer
+  );
+}
+
+/**
+ * True when the answer describes a compare-and-track approach, the pattern
+ * behind most "find the largest / best so far" style questions. Used as the
+ * final gate for a 4/5 so an on-topic-but-wrong procedure (e.g. computing the
+ * sum when asked for the max) cannot reach the ceiling on keyword volume.
+ */
+function describesCompareTrack(answer: string): boolean {
+  return /\b(largest|max|biggest|best|track|compare)\b/i.test(answer);
+}
+
+/** Vocabulary of the specific question (prompt + context) and its topic. */
+function vocabularyFor(input: FallbackEvaluationInput): {
+  questionTokens: string[];
+  topicTokens: string[];
+  allTokens: string[];
+} {
+  const questionTokens = significantTokens(input.question.prompt, input.question.context ?? "");
+  const topicTokens =
+    input.mode === "dsa_friendly"
+      ? [...(dsaTopicFromContext(input.question.context)?.keywords ?? [])]
+      : (() => {
+          const day = getDayById(input.curriculum, input.question.relatedDayIds[0]);
+          return day ? significantTokens(day.topic, ...day.learningObjectives, ...day.tools) : [];
+        })();
+  return {
+    questionTokens,
+    topicTokens,
+    allTokens: [...new Set([...questionTokens, ...topicTokens])],
+  };
 }
 
 export function evaluateFallbackAnswer(input: FallbackEvaluationInput): EvaluationResult {
@@ -411,45 +490,68 @@ export function evaluateFallbackAnswer(input: FallbackEvaluationInput): Evaluati
   const length = answer.length;
   const idk = isDontKnowAnswer(answer);
 
+  const { questionTokens, allTokens } = vocabularyFor(input);
+  const qMatches = relevanceMatches(answer, questionTokens);
+  const relevance = relevanceMatches(answer, allTokens);
+  // A prompt like "Question about day-12" carries no topical vocabulary, so
+  // grading falls back to topic relevance for those instead of marking the
+  // answer off-topic for failing to echo the prompt back.
+  const genericQuestion = questionTokens.length <= 2;
+
+  // An answer that only echoes the question's own vocabulary (keyword parroting)
+  // proves nothing and earns no points, even when it is long enough to reach the
+  // relevance thresholds below.
+  const answerTokens = significantTokens(answer);
+  const parrotsKeywords =
+    answerTokens.length > 0 &&
+    answerTokens.every((token) => allTokens.includes(token)) &&
+    !hasReasoningStructure(answer);
+
   let score = 1;
   let strengths: string[] = [];
   let weaknesses: string[] = [];
 
-  if (mode === "dsa_friendly") {
-    // Reasoning-focused scoring: reward explaining the approach, examples, and
-    // pseudocode. Perfect syntax is never required.
-    const topic = dsaTopicFromContext(input.question.context);
-    const keywords = [...(topic?.keywords ?? []), ...DSA_REASONING_KEYWORDS];
-    const uniqueKeywords = [...new Set(keywords)];
-    const lower = answer.toLowerCase();
-    const matches = uniqueKeywords.filter((word) => lower.includes(word)).length;
-
-    if (length >= 30) score += 1;
-    if (length >= 90) score += 1;
-    if (length >= 200) score += 1;
-    if (matches >= 3) score += 1;
-    if (matches >= 6) score += 1;
-    if (/\b(first|then|next|if|for|while|because|would)\b|\(\)|\[\]|=/.test(answer)) score += 1;
-
-    if (score >= 4) strengths = ["Explained a clear approach."];
-    if (score <= 2) weaknesses = ["Answer was brief; try explaining your steps out loud."];
-  } else {
-    const matches = keywordScore(answer, input.curriculum, input.question.relatedDayIds[0]);
-    if (length >= 80) score += 1;
-    if (length >= 240) score += 1;
-    if (matches >= 2) score += 1;
-    if (matches >= 5) score += 1;
-    if (score >= 3) strengths = ["Provided a substantive response."];
-    if (score <= 2) weaknesses = ["Response was brief; limited technical depth."];
-  }
-
   if (idk) {
-    score = 1;
-    strengths = [];
     weaknesses = ["Indicated uncertainty; needs a simpler verification question."];
+  } else if (length < 20) {
+    weaknesses = ["Response was too brief to assess."];
+  } else if (qMatches === 0 && !genericQuestion) {
+    weaknesses = ["Answer did not address the question asked."];
+  } else if (parrotsKeywords) {
+    weaknesses = ["Answer repeated the question's wording without explaining the reasoning."];
+  } else {
+    const structured = hasReasoningStructure(answer);
+
+    if (relevance >= 3 && length >= 30) score = 2;
+    if (relevance >= 6 && length >= 70) score = 3;
+    if (
+      relevance >= 6 &&
+      length >= 110 &&
+      structured &&
+      (relevance >= 12 || describesCompareTrack(answer))
+    ) {
+      score = 4;
+    }
+    // The heuristic can never verify a correct answer; the ceiling is 4/5.
+    score = Math.min(score, 4);
+
+    if (score >= 4) {
+      strengths =
+        mode === "dsa_friendly"
+          ? ["Explained a clear approach."]
+          : ["Provided a substantive response."];
+    } else if (score >= 3) {
+      strengths = ["Provided a substantive response."];
+    }
+    if (score <= 2) {
+      weaknesses =
+        mode === "dsa_friendly"
+          ? ["Answer was brief; try explaining your steps out loud."]
+          : ["Response was brief; limited technical depth."];
+    }
   }
 
-  score = Math.max(1, Math.min(5, score));
+  score = Math.max(1, Math.min(4, score));
   const recommendation: Evaluation["difficultyRecommendation"] =
     idk || score <= 2 ? "easier" : score >= 4 ? "harder" : "same";
 
@@ -457,7 +559,7 @@ export function evaluateFallbackAnswer(input: FallbackEvaluationInput): Evaluati
     score,
     understanding: idk
       ? "Candidate indicated they don't know; reteach the concept and verify with a simpler question."
-      : `Heuristic evaluation (Gemini unavailable): ${length} characters, ${mode === "dsa_friendly" ? "reasoning markers" : "curriculum keyword matches"} present.`,
+      : `Heuristic evaluation (Gemini unavailable): ${length} characters, ${relevance} on-topic term(s) from the question and topic.`,
     strengths,
     weaknesses,
     needsFollowUp: score <= 3 || idk,

@@ -165,7 +165,7 @@ export type DifficultyPerformance = z.infer<typeof difficultyPerformanceSchema>;
 
 export const topicPerformanceSchema = z.object({
   topic: z.string().min(1),
-  score: z.number().min(1).max(100),
+  score: z.number().min(0).max(100),
   questionsAsked: z.number().int().nonnegative(),
   summary: z.string().min(1),
 });
@@ -196,7 +196,7 @@ export const finalEvaluationSchema = z.object({
   sessionId: z.string().min(1),
   mode: interviewModeSchema,
   createdAt: z.string().min(1),
-  overallScore: z.number().min(1).max(100),
+  overallScore: z.number().min(0).max(100),
   readiness: readinessSchema,
   summary: z.string().min(1),
   topicPerformance: z.array(topicPerformanceSchema),

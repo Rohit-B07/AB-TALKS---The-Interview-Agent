@@ -260,9 +260,9 @@ describe("final evaluation aggregation", () => {
     expect(topics).toHaveLength(2);
     const python = topics.find((topic) => topic.topic === "AI Fundamentals & Python Setup");
     const ml = topics.find((topic) => topic.topic === "ML Foundations with scikit-learn");
-    expect(python?.score).toBe(90);
+    expect(python?.score).toBe(88);
     expect(python?.questionsAsked).toBe(2);
-    expect(ml?.score).toBe(60);
+    expect(ml?.score).toBe(50);
     expect(ml?.questionsAsked).toBe(2);
   });
 
@@ -274,6 +274,31 @@ describe("final evaluation aggregation", () => {
         { topic: "B", score: 60, questionsAsked: 2 },
       ])
     ).toBe(75);
+  });
+
+  it("maps 1/5 answer scores to 0/100 and 5/5 to 100/100", () => {
+    const session = makeSession({
+      mode: "dsa_friendly",
+      records: [
+        { topic: "Arrays & Loops", difficulty: "beginner", prompt: "Q1", answer: WEAK_ANSWER, score: 1 },
+        { topic: "Strings", difficulty: "beginner", prompt: "Q2", answer: STRONG_ANSWER, score: 5 },
+        { topic: "Strings", difficulty: "beginner", prompt: "Q3", answer: STRONG_ANSWER, score: 5 },
+      ],
+    });
+    const topics = aggregateTopicPerformance(session);
+    expect(topics.find((topic) => topic.topic === "Arrays & Loops")?.score).toBe(0);
+    expect(topics.find((topic) => topic.topic === "Strings")?.score).toBe(100);
+  });
+
+  it("keeps a weak-but-relevant answer above zero", () => {
+    const session = makeSession({
+      mode: "dsa_friendly",
+      records: [
+        { topic: "Arrays & Loops", difficulty: "beginner", prompt: "Q1", answer: "loop and compare", score: 3 },
+      ],
+    });
+    const topics = aggregateTopicPerformance(session);
+    expect(topics[0].score).toBe(50);
   });
 
   it("classifies readiness from the overall score", () => {
@@ -432,8 +457,8 @@ describe("FinalEvaluationService", () => {
     expect(evaluation.topicPerformance.find((topic) => topic.topic === "Arrays & Loops")?.summary).toBe(
       VALID_NARRATIVE.topicSummaries[0].summary
     );
-    // Scores are never taken from the LLM: mean of topic scores (100, 80, 80, 80) = 85.
-    expect(evaluation.overallScore).toBe(85);
+    // Scores are never taken from the LLM: mean of topic scores (100, 75, 75, 75) = 81.
+    expect(evaluation.overallScore).toBe(81);
   });
 
   it("falls back to deterministic text on malformed Gemini output", async () => {
@@ -520,6 +545,32 @@ describe("FinalEvaluationService", () => {
     expect(evaluation.readiness).toBe("beginner");
     expect(evaluation.knowledgeGaps.length).toBeGreaterThan(0);
     expect(evaluation.improvementQuestions.length).toBeGreaterThan(0);
+  });
+
+  it("does not claim positive performance when every answer is at the minimum", async () => {
+    mockedGenerate.mockRejectedValue(new Error("outage"));
+    const session = makeSession({
+      mode: "dsa_friendly",
+      records: Array.from({ length: 8 }, () => ({
+        topic: "Arrays & Loops",
+        difficulty: "beginner" as const,
+        prompt: "Question",
+        answer: WEAK_ANSWER,
+        score: 1,
+      })),
+    });
+
+    const evaluation = await service.generate(session);
+
+    expect(evaluation.overallScore).toBe(0);
+    expect(evaluation.readiness).toBe("beginner");
+    // Minimum-level performance must not be dressed up as strengths.
+    expect(evaluation.strengths).toHaveLength(0);
+    expect(evaluation.summary).not.toContain("consistent understanding");
+    expect(evaluation.summary).not.toContain("strongest");
+    expect(evaluation.summary).toMatch(/improvement|below|minimum/i);
+    expect(evaluation.topicPerformance.length).toBe(1);
+    expect(evaluation.topicPerformance[0].summary).toMatch(/Struggled with/);
   });
 
   it("produces a strong report with no improvement questions for a strong candidate", async () => {

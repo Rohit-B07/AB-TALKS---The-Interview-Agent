@@ -63,7 +63,16 @@ function mean(values: number[]): number {
 }
 
 function roundToScore(value: number): number {
-  return Math.max(1, Math.min(100, Math.round(value)));
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+/**
+ * Maps an answer score on the evaluator's 1-5 scale to the report's 0-100
+ * scale: 1 -> 0, 2 -> 25, 3 -> 50, 4 -> 75, 5 -> 100. A minimum-level answer
+ * therefore scores 0, never the old (1/5)*100 = 20 floor.
+ */
+export function normalizeAnswerScore(score: number): number {
+  return Math.max(0, Math.min(100, Math.round(((score - 1) / 4) * 100)));
 }
 
 function topicForDayIds(session: InterviewSession, dayIds: string[]): string | null {
@@ -151,7 +160,7 @@ export function aggregateTopicPerformance(session: InterviewSession): TopicScore
     const group = groups.get(topic)!;
     return {
       topic,
-      score: roundToScore((mean(group.scores) / 5) * 100),
+      score: roundToScore(normalizeAnswerScore(mean(group.scores))),
       questionsAsked: group.count,
     };
   });
@@ -244,12 +253,21 @@ export function extractStrengths(evidence: {
     }
   }
 
-  for (const candidateStrength of evidence.candidate.strengths) {
-    if (strengths.length >= 5) break;
-    strengths.push(candidateStrength);
+  // Profile strengths and generic praise are only listed when the interview
+  // actually showed some positive engagement. An interview where every answer
+  // scored at the minimum must never claim strong understanding.
+  const hasPositivePerformance =
+    evidence.records.some((record) => record.score >= 3) ||
+    evidence.topics.some((topic) => topic.score >= 50);
+
+  if (hasPositivePerformance) {
+    for (const candidateStrength of evidence.candidate.strengths) {
+      if (strengths.length >= 5) break;
+      strengths.push(candidateStrength);
+    }
   }
 
-  if (strengths.length === 0) {
+  if (strengths.length === 0 && hasPositivePerformance) {
     strengths.push(
       evidence.mode === "dsa_friendly"
         ? "Consistently explained an approach out loud"

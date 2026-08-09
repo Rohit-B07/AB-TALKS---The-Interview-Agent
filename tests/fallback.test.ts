@@ -259,4 +259,184 @@ describe("fallback evaluation", () => {
     expect(strong.score).toBeGreaterThanOrEqual(weak.score);
     expect(strong.difficultyRecommendation).toBe("harder");
   });
+
+    it("keeps a bare 'I don't know' at the minimum score", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question: questionFor("day-12"),
+        answer: "I don't know.",
+        memory: memoryFor(sara),
+        personality: "hiring_manager",
+      });
+      expect(result.score).toBe(1);
+      expect(result.difficultyRecommendation).toBe("easier");
+    });
+
+    it("never awards 5/5 in the heuristic path, even for a strong relevant answer", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question: questionFor("day-12"),
+        answer:
+          "RAG retrieves relevant document chunks from a vector store and passes them to the " +
+          "LLM as grounding context. I would chunk documents carefully, embed them, and then " +
+          "rank the top-k passages with a reranker before generation.",
+        memory: memoryFor(sara),
+        personality: "hiring_manager",
+      });
+      expect(result.score).toBeLessThanOrEqual(4);
+    });
+
+    it("keeps a long, keyword-heavy but incorrect answer below 4/5", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const question = {
+        id: "q-largest",
+        type: "conceptual" as const,
+        prompt: "Given an array of numbers, how would you find the largest number?",
+        context: "DSA Friendly · Arrays & Loops",
+        difficulty: "beginner" as const,
+        relatedDayIds: ["day-4"],
+        createdAt: new Date().toISOString(),
+      };
+      // Verbose and packed with the topic's keywords, but it answers the wrong
+      // thing (computes the sum when asked for the largest element).
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question,
+        answer:
+          "I would compute the sum of all the elements by iterating over the array with a loop, " +
+          "adding each number to a running total, and then returning the total at the end.",
+        memory: memoryFor(sara),
+        personality: "mentor",
+        mode: "dsa_friendly",
+      });
+      expect(result.score).toBeLessThan(4);
+    });
+
+    it("keeps a verbose, wrong-topic answer at the minimum score", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const question = {
+        id: "q-anagram",
+        type: "conceptual" as const,
+        prompt: "How would you check whether one string is an anagram of another?",
+        context: "DSA Friendly · Strings",
+        difficulty: "beginner" as const,
+        relatedDayIds: ["day-4"],
+        createdAt: new Date().toISOString(),
+      };
+      // The previously-buggy scenario: the same verbose array answer given to every
+      // question used to score 5/5 because it matched generic keywords.
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question,
+        answer:
+          "I would iterate over the array with a loop, compare each element to the largest value " +
+          "I have tracked so far, and update the sum and the index whenever I find something bigger.",
+        memory: memoryFor(sara),
+        personality: "mentor",
+        mode: "dsa_friendly",
+      });
+      expect(result.score).toBe(1);
+    });
+
+    it("still awards a high score to a genuinely relevant, well-developed answer", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const question = {
+        id: "q-largest",
+        type: "conceptual" as const,
+        prompt: "Given an array of numbers, how would you find the largest number?",
+        context: "DSA Friendly · Arrays & Loops",
+        difficulty: "beginner" as const,
+        relatedDayIds: ["day-4"],
+        createdAt: new Date().toISOString(),
+      };
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question,
+        answer:
+          "I would first create a variable to track the best value, then iterate over the whole " +
+          "array of numbers with a loop, comparing each element to the largest value I have seen, " +
+          "updating the index and the max whenever I find something bigger, and finally returning " +
+          "the largest number at the end.",
+        memory: memoryFor(sara),
+        personality: "mentor",
+        mode: "dsa_friendly",
+      });
+      expect(result.score).toBeGreaterThanOrEqual(4);
+      expect(result.difficultyRecommendation).toBe("harder");
+    });
+
+    it("scores keyboard-mash nonsense at the minimum score", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const question = {
+        id: "q-bst",
+        type: "conceptual" as const,
+        prompt: "What is a binary search tree?",
+        context: "DSA Friendly · Binary Search Trees",
+        difficulty: "beginner" as const,
+        relatedDayIds: ["day-4"],
+        createdAt: new Date().toISOString(),
+      };
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question,
+        answer: "dhjsbca jndjkaS",
+        memory: memoryFor(sara),
+        personality: "mentor",
+        mode: "dsa_friendly",
+      });
+      expect(result.score).toBe(1);
+    });
+
+    it("scores an empty answer at the minimum score", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question: questionFor("day-12"),
+        answer: "   ",
+        memory: memoryFor(sara),
+        personality: "hiring_manager",
+      });
+      expect(result.score).toBe(1);
+    });
+
+    it("does not award points for an answer that just repeats the question's keywords", async () => {
+      const sara = await candidateService.getCandidateById("candidate-vatsal");
+      const curriculum = await curriculumService.getCurriculum();
+      const question = {
+        id: "q-bst",
+        type: "conceptual" as const,
+        prompt: "What is a binary search tree?",
+        context: "DSA Friendly · Binary Search Trees",
+        difficulty: "beginner" as const,
+        relatedDayIds: ["day-4"],
+        createdAt: new Date().toISOString(),
+      };
+      const result = evaluateFallbackAnswer({
+        candidate: sara,
+        curriculum,
+        question,
+        answer: "binary search tree binary search tree binary search tree",
+        memory: memoryFor(sara),
+        personality: "mentor",
+        mode: "dsa_friendly",
+      });
+      expect(result.score).toBe(1);
+      expect(result.weaknesses.join(" ").toLowerCase()).toContain("wording");
+    });
 });
